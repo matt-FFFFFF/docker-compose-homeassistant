@@ -1,113 +1,179 @@
 version: '3.7'
 services:
-        ha:
-                container_name: homeassistant
-                image: homeassistant/home-assistant:latest
-                volumes:
-                        - /vol/homeassistant/config:/config
-                        - /etc/localtime:/etc/localtime:ro
-                        - ./wait-for-it.sh:/wait-for-it.sh:ro
-                restart: always
-                entrypoint:
-                        - /wait-for-it.sh
-                        - -h
-                        - homeassistant-mariadb
-                        - -p
-                        - '3306'
-                        - --
-                        - python
-                        - -m
-                        - homeassistant
-                        - --config
-                        - /config
-                networks:
-                        - frontend
-                        - backend
-                ports:
-                        - 8123:8123
-                depends_on:
-                        - ha-mariadb
-                        - ha-mosquitto
-        ha-mariadb:
-                container_name: homeassistant-mariadb
-                image: mariadb:latest
-                restart: always
-                volumes: 
-                        - type: volume
-                          source: ha-mariadb-data
-                          target: /var/lib/mysql
-                networks:
-                        - backend
-                secrets:
-                        - source: ha-mariadb-user
-                          target: MYSQL_USER
-                          mode: 0440
-                          uid: '101'
-                          gid: '103'
-                        - source: ha-mariadb-password
-                          target: MYSQL_PASSWORD
-                          mode: 0440
-                          uid: '101'
-                          gid: '103'
-                        - source: ha-mariadb-database
-                          target: MYSQL_DATABASE
-                          mode: 0440
-                          uid: '101'
-                          gid: '103'
-                environment:
-                        MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
-                        MYSQL_USER_FILE: /run/secrets/MYSQL_USER
-                        MYSQL_PASSWORD_FILE: /run/secrets/MYSQL_PASSWORD
-                        MYSQL_DATABASE_FILE: /run/secrets/MYSQL_DATABASE
-                expose:
-                        - '3306'
-        ha-mosquitto:
-                container_name: mosquitto
-                image: eclipse-mosquitto:latest
-                restart: always
-                volumes:
-                        - /vol/mosquitto/data:/mosquitto/data
-                        - /vol/mosquitto/log:/mosquitto/log
-                        - /vol/mosquitto/config:/mosquitto/config
-                        - ./mosquitto/bootstraplogins.sh:/bootstraplogins.sh:ro
-                entrypoint:
-                        - /bootstraplogins.sh
-                networks:
-                        - frontend
-                ports:
-                        - 8883:8883
-                expose:
-                        - '1883'
-        nginx:
-                image: nginx:latest
-                container_name: nginx:latest
-                volumes:
-                        - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-                        - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-                        - /vol/homeassistant-nginx/dh-parm/dhparm-2048.pem:/etc/ssl/certs/dhparm-2048.pem:ro
-                        - /vol/homeassistant-nginx/letsencrypt/etc/live/ha.hardac.co.uk/fullchain.pem:/etc/letsencrypt/live/ha.hardac.co.uk/fullchain.pem:ro
-                        - /vol/homeassistant-nginx/letsencrypt/etc/live/ha.hardac.co.uk/privkey.pem:/etc/letsencrypt/live/ha.hardac.co.uk/privkey.pem:ro
-                        - /vol/homeassistant-nginx/letsencrypt/challenge:/data/letsencrypt
-                restart: always
-                ports:
-                        - 443:443
-                        - 80:80
-                depends_on:
-                        - ha
-                networks:
-                        - frontend
+# home assistant user (www-data) 33:33
+  homeassistant:
+    container_name: homeassistant
+    image: homeassistant/home-assistant:latest
+    volumes:
+      - type: volume
+        source: ha-config
+        target: /config
+      - type: bind
+        source: /etc/localtime
+        target: /etc/localtime
+        read_only: true
+      - type: bind
+        source: ./wait-for-it.sh
+        target: /wait-for-it.sh
+        read_only: true
+      - type: bind
+        source: ./gosu
+        target: /gosu
+      - type: bind
+        source: ./homeassistant/entrypoint.sh
+        target: /entrypoint.sh
+        read_only: true
+    restart: always
+    entrypoint:
+      - /entrypoint.sh
+    networks:
+      - frontend
+      - backend
+    secrets:
+      - source: ha-secrets
+        target: /config/secrets.yaml
+        mode: 0440
+        uid: '33'
+        gid: '33'
+    expose:
+      - '8123/tcp'
+    depends_on:
+      - mariadb
+      - mosquitto
+# mysql user 999:999
+  mariadb:
+    container_name: ha-mariadb
+    image: mariadb:latest
+    restart: always
+    volumes: 
+      - type: volume
+        source: ha-mariadb-data
+        target: /var/lib/mysql
+    networks:
+      - backend
+    secrets:
+      - source: ha-mariadb-user
+        target: MYSQL_USER
+        mode: 0440
+        uid: '999'
+        gid: '999'
+      - source: ha-mariadb-password
+        target: MYSQL_PASSWORD
+        mode: 0440
+        uid: '999'
+        gid: '999'
+      - source: ha-mariadb-database
+        target: MYSQL_DATABASE
+        mode: 0440
+        uid: '999'
+        gid: '999'
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
+      MYSQL_USER_FILE: /run/secrets/MYSQL_USER
+      MYSQL_PASSWORD_FILE: /run/secrets/MYSQL_PASSWORD
+      MYSQL_DATABASE_FILE: /run/secrets/MYSQL_DATABASE
+    expose:
+      - '3306/tcp'
+# mosquitto user 100:101 
+  mosquitto:
+    container_name: ha-mosquitto
+    image: eclipse-mosquitto:latest
+    restart: always
+    volumes:
+      - type: volume
+        source: mosquitto-data
+        target: /mosquitto/data
+      - type: volume
+        source: mosquitto-log
+        target: /mosquitto/log
+      - type: bind
+        source: ./mosquitto/bootstraplogins.sh
+        target: /bootstraplogins.sh
+        read_only: true
+    secrets:
+      - source: ha-mosquitto-logins
+        target: mosquitto-logins
+        mode: 0440
+    entrypoint:
+      - /bootstraplogins.sh
+    networks:
+      - frontend
+    ports:
+      - 8883:8883/tcp
+    expose:
+      - '1883/tcp'
+# nginx user 101:101
+  nginx:
+    image: nginx:latest
+    container_name: ha-nginx
+    volumes:
+      - type: volume
+        source: ha-letsencrypt-data
+        target: /etc/letsencrypt
+      - type: volume
+        source: ha-letsencrypt-challenge
+        target: /data/letsencrypt
+    restart: always
+    configs:
+      - source: ha-nginx-default-notls
+        target: /etc/nginx/conf.d/default.conf
+        mode: 0444
+      - source: ha-nginx-nginx
+        target: /etc/nginx/nginx.conf
+        mode: 0444
+    ports:
+      - 443:443/tcp
+      - 80:80/tcp
+    depends_on:
+      - homeassistant
+    networks:
+      - frontend
+    secrets:
+      - source: ha-nginx-dhparm
+        target: dhparm-2048.pem
+        mode: 0440
+        uid: '101'
+        gid: '101'
+
+configs:
+  ha-nginx-default-notls:
+    file: ./nginx/default-notls.conf
+  ha-nginx-default:
+    file: ./nginx/default.conf
+  ha-nginx-nginx:
+    file: ./nginx/nginx.conf
+
 networks:
-        frontend:
-        backend:
-                internal: true
+  frontend:
+  backend:
+    internal: true
 
 volumes:
-        ha-mariadb-data:
+# mariadb data volume
+  ha-mariadb-data:
+# home assistant config
+  ha-config:
+# mosquitto data/log
+  ha-mosquitto-data:
+  ha-mosquitto-log:
+# letsencrypt
+  ha-letsencrypt-data:
+  ha-letsencrypt-challenge:
 
 secrets:
-        ha-mariadb-user:
-                external: true
-        ha-mariadb-password:
-                external: true
-        ha-mariadb-database:
-                external: true
+# Secrets for mariadb
+  ha-mariadb-user:
+    external: true
+  ha-mariadb-password:
+    external: true
+  ha-mariadb-database:
+    external: true
+# Secrets.yaml file for homeassistant 
+  ha-secrets:
+    external: true
+# nginx secrets
+  ha-nginx-dhparm:
+    external: true
+# mosquitto logins
+  ha-mosquitto-logins:
+    external: true
