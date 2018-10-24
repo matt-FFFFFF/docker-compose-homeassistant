@@ -6,7 +6,7 @@ services:
     image: homeassistant/home-assistant:latest
     volumes:
       - type: volume
-        source: ha-config
+        source: haconfig
         target: /config
       - type: bind
         source: /etc/localtime
@@ -152,7 +152,7 @@ volumes:
 # mariadb data volume
   mariadb-data:
 # home assistant config
-  config:
+  haconfig:
 # mosquitto data/log
   mosquitto-data:
   mosquitto-log:
