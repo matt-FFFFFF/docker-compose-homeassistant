@@ -47,7 +47,7 @@ services:
     restart: always
     volumes: 
       - type: volume
-        source: ha-mariadb-data
+        source: mariadb-data
         target: /var/lib/mysql
     networks:
       - backend
@@ -108,10 +108,10 @@ services:
     container_name: ha-nginx
     volumes:
       - type: volume
-        source: ha-letsencrypt-data
+        source: letsencrypt-data
         target: /etc/letsencrypt
       - type: volume
-        source: ha-letsencrypt-challenge
+        source: letsencrypt-challenge
         target: /data/letsencrypt
     restart: always
     configs:
@@ -150,15 +150,15 @@ networks:
 
 volumes:
 # mariadb data volume
-  ha-mariadb-data:
+  mariadb-data:
 # home assistant config
-  ha-config:
+  config:
 # mosquitto data/log
-  ha-mosquitto-data:
-  ha-mosquitto-log:
+  mosquitto-data:
+  mosquitto-log:
 # letsencrypt
-  ha-letsencrypt-data:
-  ha-letsencrypt-challenge:
+  letsencrypt-data:
+  letsencrypt-challenge:
 
 secrets:
 # Secrets for mariadb
