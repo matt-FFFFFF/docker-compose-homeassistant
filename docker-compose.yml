@@ -2,7 +2,7 @@ version: '3.7'
 services:
 # home assistant user (www-data) 33:33
   homeassistant:
-    container_name: homeassistant
+    container_name: ha-homeassistant
     image: homeassistant/home-assistant:latest
     volumes:
       - type: volume
@@ -52,17 +52,17 @@ services:
     networks:
       - backend
     secrets:
-      - source: ha-mariadb-user
+      - source: ha-mysql-user
         target: MYSQL_USER
         mode: 0440
         uid: '999'
         gid: '999'
-      - source: ha-mariadb-password
+      - source: ha-mysql-password
         target: MYSQL_PASSWORD
         mode: 0440
         uid: '999'
         gid: '999'
-      - source: ha-mariadb-database
+      - source: ha-mysql-database
         target: MYSQL_DATABASE
         mode: 0440
         uid: '999'
@@ -162,11 +162,11 @@ volumes:
 
 secrets:
 # Secrets for mariadb
-  ha-mariadb-user:
+  ha-mysql-user:
     external: true
-  ha-mariadb-password:
+  ha-mysql-password:
     external: true
-  ha-mariadb-database:
+  ha-mysql-database:
     external: true
 # Secrets.yaml file for homeassistant 
   ha-secrets:
