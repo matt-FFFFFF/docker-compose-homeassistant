@@ -1,0 +1,21 @@
+# General section
+topic read $SYS/#
+
+# User section
+user homeassistant
+topic readwrite homeassistant/#
+topic readwrite smartthings/#
+topic readwrite owntracks/+/+/cmd
+topic read owntracks/#
+
+user smartthings
+topic readwrite smartthings/#
+
+user mattiphoneowntrk
+topic readwrite owntracks/mattiphoneowntrk/#
+
+user beliphoneowntrk
+topic readwrite owntracks/beliphoneowntrk/#
+
+# This affects all clients
+pattern write $SYS/broker/connection/%c/state
