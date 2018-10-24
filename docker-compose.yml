@@ -49,10 +49,6 @@ services:
       - type: volume
         source: mariadb-data
         target: /var/lib/mysql
-      - type: bind
-        source: ./mariadb/chmodtmp-thenenter.sh
-        target: /chmodtmp-thenenter.sh
-        read_only: true
     networks:
       - backend
     secrets:
