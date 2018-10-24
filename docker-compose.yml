@@ -49,6 +49,10 @@ services:
       - type: volume
         source: mariadb-data
         target: /var/lib/mysql
+      - type: bind
+        source: ./mariadb/chmodtmp-thenenter.sh
+        target: /chmodtmp-thenenter.sh
+        read_only: true
     networks:
       - backend
     secrets:
@@ -67,6 +71,8 @@ services:
         mode: 0440
         uid: '999'
         gid: '999'
+    entrypoint:
+      - /chmodtmp-thenenter.sh
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: 'yes'
       MYSQL_USER_FILE: /run/secrets/MYSQL_USER
